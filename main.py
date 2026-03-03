@@ -1,9 +1,27 @@
 from sqlalchemy.orm import Session
-from fastapi import FastAPI, Path, Query, Body, status, HTTPException, Depends
+from fastapi import (
+    FastAPI,
+    Path,
+    Query,
+    Body,
+    status,
+    HTTPException,
+    Depends,
+    BackgroundTasks,
+)
+
 from sqlalchemy import select
 from db_connection import SessionFactory, get_session
 from models import User
 from schema import UserSignUpRequest, UserResponse, UserUpdateRequest
+
+
+def send_email(name: str):
+    import time
+
+    time.sleep(5)  # 5초 대기
+    print(f"{name}에게 이메일 전송이 완료되었습니다.")
+
 
 app = FastAPI()
 
@@ -31,6 +49,7 @@ def get_users_handler(
 @app.post("/users/sign-up", response_model=UserResponse)
 def sign_up_handler(
     body: UserSignUpRequest,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
 ):
     new_user = User(name=body.name, age=body.age)
@@ -38,6 +57,8 @@ def sign_up_handler(
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
+
+    background_tasks.add_task(send_email, body.name)
 
     return new_user
 
