@@ -16,6 +16,9 @@ class UserResponse(BaseModel):
     name: str
     age: int | None
 
+    class Config:
+        from_attributes = True
+
 
 # 사용자 정보 수정 요청 본문
 class UserUpdateRequest(BaseModel):
