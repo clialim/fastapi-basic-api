@@ -13,6 +13,8 @@ Dependency Injection 기반 세션 관리와 BackgroundTasks를 활용한 비동
 - Pydantic Response Model 적용
 - BackgroundTasks를 활용한 회원가입 후 이메일 전송 처리
 - Swagger 자동 문서화
+- Async SQLAlchemy (AsyncSession) 기반 비동기 DB 처리
+- 사용자 CRUD API 구현 (async/await 적용)
 
 ---
 
@@ -20,9 +22,11 @@ Dependency Injection 기반 세션 관리와 BackgroundTasks를 활용한 비동
 
 - Python 3.10+
 - FastAPI
-- SQLAlchemy
+- SQLAlchemy (AsyncSession)
+- aiosqlite
 - SQLite
 - Uvicorn
+
 
 ---
 
@@ -34,6 +38,7 @@ Dependency Injection 기반 세션 관리와 BackgroundTasks를 활용한 비동
 ├── models.py
 ├── schema.py
 ├── db_connection.py
+├── db_connection_async.py
 ├── test.db
 ├── create_tables.py
 ├── session.py
@@ -141,10 +146,10 @@ DELETE /users/{user_id}
 회원가입 API에서 BackgroundTasks를 사용하여 
 이메일 전송 작업을 요청-응답 사이클과 분리하였습니다.
 
-FastAPI의 sync endpoint는 내부적으로 threadpool에서 실행되며,
-BackgroundTasks 또한 별도의 스레드에서 처리됩니다.
-이를 통해 사용자에게는 빠르게 응답을 반환하고,
-이메일 전송과 같은 부가 작업은 응답 이후 비동기적으로 처리할 수 있습니다.
+FastAPI는 async endpoint에서도 BackgroundTasks를 지원합니다.
+이메일 전송과 같이 I/O가 발생하는 작업을 요청-응답 사이클과 분리하여,
+응답 이후 실행되도록 구성하였습니다.
+
 
 ### 적용 이유
 
@@ -191,4 +196,6 @@ http://127.0.0.1:8000/redoc
 - Pydantic Response Model을 통한 직렬화 구조 이해
 - Sync endpoint의 threadpool 동작 방식 이해
 - BackgroundTasks를 활용한 요청-응답 분리 구조 설계
+- AsyncSession을 활용한 비동기 DB 처리 구조 이해
+- await 기반 이벤트 루프 동작 방식 이해
 - Sync vs Async 처리 방식 비교 및 차이점 학습

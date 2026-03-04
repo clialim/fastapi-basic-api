@@ -12,7 +12,8 @@ from fastapi import (
 from contextlib import asynccontextmanager
 import anyio
 from sqlalchemy import select
-from db_connection import SessionFactory, get_session
+from db_connection import get_session
+from db_connection_async import get_async_session
 from models import User
 from schema import UserSignUpRequest, UserResponse, UserUpdateRequest
 
@@ -45,14 +46,14 @@ app = FastAPI()
     status_code=status.HTTP_200_OK,
     response_model=list[UserResponse],
 )
-def get_users_handler(
+async def get_users_handler(
     # 요청이 시작 -> session이 생성
     # 응답 반환 -> session.close()
-    session=Depends(get_session),
+    session=Depends(get_async_session),
 ):
     # stmt = statement(구문) -> SELECT * FROM user
     stmt = select(User)
-    result = session.execute(stmt)
+    result = await session.execute(stmt)
 
     users = result.scalars().all()
     return users
@@ -60,15 +61,15 @@ def get_users_handler(
 
 # 회원가입 API
 @app.post("/users/sign-up", response_model=UserResponse)
-def sign_up_handler(
+async def sign_up_handler(
     body: UserSignUpRequest,
     background_tasks: BackgroundTasks,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_async_session),
 ):
     new_user = User(name=body.name, age=body.age)
 
     session.add(new_user)
-    session.commit()
+    await session.commit()
     session.refresh(new_user)
 
     background_tasks.add_task(send_email, body.name)
@@ -98,12 +99,12 @@ def search_user_handler(
 # ?field = name -> name값만 반환
 # 없으면 -> id, name 반환
 @app.get("/users/{user_id}", response_model=UserResponse)
-def get_user_handler(
+async def get_user_handler(
     user_id: int,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_async_session),
 ):
     stmt = select(User).where(User.id == user_id)
-    result = session.execute(stmt)
+    result = await session.execute(stmt)
     user = result.scalar()
 
     if user is None:
@@ -116,13 +117,13 @@ def get_user_handler(
 # Put -> {name, age} 한번에 교체
 # Patch -> name | age 하나씩 교체
 @app.patch("/users/{user_id}", response_model=UserResponse)
-def update_user_handler(
+async def update_user_handler(
     user_id: int,
     body: UserUpdateRequest,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_async_session),
 ):
     stmt = select(User).where(User.id == user_id)
-    result = session.execute(stmt)
+    result = await session.execute(stmt)
     user = result.scalar()
 
     if user is None:
@@ -133,7 +134,7 @@ def update_user_handler(
     if body.age is not None:
         user.age = body.age
 
-    session.commit()
+    await session.commit()
     session.refresh(user)
 
     return user
@@ -141,19 +142,19 @@ def update_user_handler(
 
 # 사용자 삭제(회원탈퇴) API
 @app.delete("/users/{user_id}", status_code=204)
-def delete_user_handler(
+async def delete_user_handler(
     user_id: int,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_async_session),
 ):
     stmt = select(User).where(User.id == user_id)
-    result = session.execute(stmt)
+    result = await session.execute(stmt)
     user = result.scalar()
 
     if user is None:
         raise HTTPException(status_code=404, detail="존재하지 않는 사용자 ID입니다.")
 
     session.delete(user)
-    session.commit()
+    await session.commit()
 
 
 """실습
