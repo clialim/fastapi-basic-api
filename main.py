@@ -9,7 +9,8 @@ from fastapi import (
     Depends,
     BackgroundTasks,
 )
-
+from contextlib import asynccontextmanager
+import anyio
 from sqlalchemy import select
 from db_connection import SessionFactory, get_session
 from models import User
@@ -22,6 +23,18 @@ def send_email(name: str):
     time.sleep(5)  # 5초 대기
     print(f"{name}에게 이메일 전송이 완료되었습니다.")
 
+
+# 스레드 풀 개수
+@asynccontextmanager
+async def lifespan(_):
+    # 서버가 실행될 때, 실행되는 부분
+    limiter = anyio.to_thread.current_default_thread_limiter()
+    limiter.total_tokens = 200  # 스레드 출 개술를 200개로 증량
+    yield
+    # 서버 종료될 때, 실행되는 부분
+
+
+# lifespan -> FastAPI 서버가 실행되고 종료될 떄, 특정 리소스를 생성하고 정리하는 기능
 
 app = FastAPI()
 
